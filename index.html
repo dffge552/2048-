@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 無盡模式</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background-color: #faf8ef;
+            font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+        }
+        .header {
+            width: 300px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .score-container {
+            background: #bbada0;
+            padding: 5px 15px;
+            border-radius: 3px;
+            color: white;
+            text-align: center;
+        }
+        .info-panel {
+            width: 300px;
+            background: #8f7a66;
+            color: white;
+            padding: 8px;
+            border-radius: 3px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            text-align: center;
+        }
+        #game-board {
+            width: 300px;
+            height: 300px;
+            background-color: #bbada0;
+            border-radius: 6px;
+            position: relative;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .cell {
+            width: 65px;
+            height: 65px;
+            background-color: rgba(238, 228, 218, 0.35);
+            border-radius: 3px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #776e65;
+            padding: 5px;  /* 新增：留一點邊距 */
+            box-sizing: border-box;  /* 新增：包含 padding 在寬高內 */
+            overflow: hidden;  /* 新增：防止文字溢出 */
+        }
+
+        /* 2^1 到 2^10 - 暖色調 */
+        .n-p1 { background: #eee4da; color: #776e65; }
+        .n-p2 { background: #ede0c8; color: #776e65; }
+        .n-p3 { background: #f2b179; color: #f9f6f2; }
+        .n-p4 { background: #f59563; color: #f9f6f2; }
+        .n-p5 { background: #f67c5f; color: #f9f6f2; }
+        .n-p6 { background: #f65e3b; color: #f9f6f2; }
+        .n-p7 { background: #edcf72; color: #f9f6f2; }
+        .n-p8 { background: #edcc61; color: #f9f6f2; }
+        .n-p9 { background: #edc850; color: #f9f6f2; }
+        .n-p10 { background: #edc53f; color: #f9f6f2; }
+
+        /* 2^11 到 2^20 - 金色到紅色 */
+        .n-p11 { background: #edc22e; color: #f9f6f2; }
+        .n-p12 { background: #3c3a32; color: #f9f6f2; }
+        .n-p13 { background: #fe3d3d; color: #f9f6f2; }
+        .n-p14 { background: #ff2020; color: #f9f6f2; }
+        .n-p15 { background: #e6194B; color: #f9f6f2; }
+        .n-p16 { background: #c41e3a; color: #f9f6f2; }
+        .n-p17 { background: #9a0eea; color: #f9f6f2; }
+        .n-p18 { background: #7851a9; color: #f9f6f2; }
+        .n-p19 { background: #5f3dc4; color: #f9f6f2; }
+        .n-p20 { background: #0892d0; color: #f9f6f2; }
+
+        /* 2^21 到 2^30 - 藍色系 */
+        .n-p21 { background: #0047ab; color: #f9f6f2; }
+        .n-p22 { background: #003f87; color: #f9f6f2; }
+        .n-p23 { background: #002366; color: #f9f6f2; }
+        .n-p24 { background: #001a4d; color: #f9f6f2; }
+        .n-p25 { background: #0033cc; color: #f9f6f2; }
+        .n-p26 { background: #0055ff; color: #f9f6f2; }
+        .n-p27 { background: #3377ff; color: #f9f6f2; }
+        .n-p28 { background: #5599ff; color: #1a1a1a; }
+        .n-p29 { background: #77bbff; color: #1a1a1a; }
+        .n-p30 { background: #99ddff; color: #1a1a1a; }
+
+        /* 2^31 到 2^40 - 綠色系 */
+        .n-p31 { background: #50c878; color: #f9f6f2; }
+        .n-p32 { background: #228b22; color: #f9f6f2; }
+        .n-p33 { background: #023020; color: #f9f6f2; }
+        .n-p34 { background: #0b6623; color: #f9f6f2; }
+        .n-p35 { background: #29ab87; color: #f9f6f2; }
+        .n-p36 { background: #00a86b; color: #f9f6f2; }
+        .n-p37 { background: #2ecc71; color: #1a1a1a; }
+        .n-p38 { background: #7bed9f; color: #1a1a1a; }
+        .n-p39 { background: #a8e6cf; color: #1a1a1a; }
+        .n-p40 { background: #c7f0bd; color: #1a1a1a; }
+
+        /* 2^41 到 2^50 - 黃綠到黃色 */
+        .n-p41 { background: #d4af37; color: #1a1a1a; }
+        .n-p42 { background: #b8860b; color: #f9f6f2; }
+        .n-p43 { background: #996515; color: #f9f6f2; }
+        .n-p44 { background: #704214; color: #f9f6f2; }
+        .n-p45 { background: #8b4513; color: #f9f6f2; }
+        .n-p46 { background: #a0522d; color: #f9f6f2; }
+        .n-p47 { background: #cd853f; color: #1a1a1a; }
+        .n-p48 { background: #daa520; color: #1a1a1a; }
+        .n-p49 { background: #ffd700; color: #1a1a1a; }
+        .n-p50 { background: #ffed4e; color: #1a1a1a; }
+
+        /* 2^51 到 2^60 - 橙色到紅色 */
+        .n-p51 { background: #ffb347; color: #1a1a1a; }
+        .n-p52 { background: #ff8c00; color: #f9f6f2; }
+        .n-p53 { background: #ff6347; color: #f9f6f2; }
+        .n-p54 { background: #dc143c; color: #f9f6f2; }
+        .n-p55 { background: #b22222; color: #f9f6f2; }
+        .n-p56 { background: #8b0000; color: #f9f6f2; }
+        .n-p57 { background: #660000; color: #f9f6f2; }
+        .n-p58 { background: #4d0000; color: #f9f6f2; }
+        .n-p59 { background: #330000; color: #f9f6f2; }
+        .n-p60 { background: #1a0000; color: #f9f6f2; }
+
+        /* 2^61 到 2^70 - 粉紅到紫色 */
+        .n-p61 { background: #ff1493; color: #f9f6f2; }
+        .n-p62 { background: #c71585; color: #f9f6f2; }
+        .n-p63 { background: #9932cc; color: #f9f6f2; }
+        .n-p64 { background: #8a2be2; color: #f9f6f2; }
+        .n-p65 { background: #4b0082; color: #f9f6f2; }
+        .n-p66 { background: #6a0dad; color: #f9f6f2; }
+        .n-p67 { background: #800080; color: #f9f6f2; }
+        .n-p68 { background: #9370db; color: #f9f6f2; }
+        .n-p69 { background: #ba55d3; color: #f9f6f2; }
+        .n-p70 { background: #da70d6; color: #1a1a1a; }
+
+        /* 2^71 到 2^80 - 藍紫到青色 */
+        .n-p71 { background: #483d8b; color: #f9f6f2; }
+        .n-p72 { background: #191970; color: #f9f6f2; }
+        .n-p73 { background: #000080; color: #f9f6f2; }
+        .n-p74 { background: #00008b; color: #f9f6f2; }
+        .n-p75 { background: #0000cd; color: #f9f6f2; }
+        .n-p76 { background: #4169e1; color: #f9f6f2; }
+        .n-p77 { background: #1e90ff; color: #f9f6f2; }
+        .n-p78 { background: #00bfff; color: #1a1a1a; }
+        .n-p79 { background: #87ceeb; color: #1a1a1a; }
+        .n-p80 { background: #87cefa; color: #1a1a1a; }
+
+        /* 2^81 到 2^90 - 青色到藍綠 */
+        .n-p81 { background: #00ced1; color: #1a1a1a; }
+        .n-p82 { background: #008b8b; color: #f9f6f2; }
+        .n-p83 { background: #20b2aa; color: #1a1a1a; }
+        .n-p84 { background: #48d1cc; color: #1a1a1a; }
+        .n-p85 { background: #40e0d0; color: #1a1a1a; }
+        .n-p86 { background: #00ffff; color: #1a1a1a; }
+        .n-p87 { background: #00e5ee; color: #1a1a1a; }
+        .n-p88 { background: #00cdcd; color: #1a1a1a; }
+        .n-p89 { background: #00b5b8; color: #f9f6f2; }
+        .n-p90 { background: #009999; color: #f9f6f2; }
+
+        /* 2^91 到 2^100 - 特殊漸變色 */
+        .n-p91 { background: #7fffd4; color: #1a1a1a; }
+        .n-p92 { background: #66cdaa; color: #1a1a1a; }
+        .n-p93 { background: #3cb371; color: #f9f6f2; }
+        .n-p94 { background: #2e8b57; color: #f9f6f2; }
+        .n-p95 { background: #006400; color: #f9f6f2; }
+        .n-p96 { background: #556b2f; color: #f9f6f2; }
+        .n-p97 { background: #6b8e23; color: #f9f6f2; }
+        .n-p98 { background: #808000; color: #f9f6f2; }
+        .n-p99 { background: #bdb76b; color: #1a1a1a; }
+        .n-p100 { background: #ffd700; color: #1a1a1a; font-weight: 900; }
+
+        /* 超過 2^100 */
+        .n-super { background: #000000; color: #ffd700; font-weight: 900; }
+
+        .controls {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            grid-template-rows: repeat(2, 70px);
+            gap: 10px;
+        }
+        .control-btn {
+            background: #8f7a66;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .control-btn:active {
+            background: #9f8a76;
+        }
+        #up { grid-column: 2; grid-row: 1; }
+        #left { grid-column: 1; grid-row: 2; }
+        #down { grid-column: 2; grid-row: 2; }
+        #right { grid-column: 3; grid-row: 2; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>2048 ∞</h1>
+    <div style="display: flex; gap: 10px;">
+        <div class="score-container">
+            <div>分數</div>
+            <div id="score">0</div>
+        </div>
+        <div class="score-container" style="background: #d4af37;">
+            <div>👑 最高分</div>
+            <div id="high-score">0</div>
+        </div>
+    </div>
+</div>
+
+<div class="info-panel">
+    <div>最小掉落: <span id="min-spawn">2</span> | 最大方塊: <span id="max-tile">0</span></div>
+</div>
+
+<div style="display: flex; gap: 10px; width: 300px; margin-bottom: 10px;">
+    <button onclick="confirmRestart()" style="
+        flex: 1;
+        padding: 12px;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    ">🔄 重新開始</button>
+
+    <button id="endless-mode-btn" onclick="showEndlessModeDialog()" style="
+        flex: 1;
+        padding: 12px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+    ">♾️ 無盡模式</button>
+
+    <button onclick="showGameInfo()" style="
+        flex: 1;
+        padding: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    ">❓ 說明</button>
+</div>
+
+<div style="display: flex; gap: 10px; width: 300px; margin-bottom: 10px;">
+    <button id="undo-btn" onclick="undoMove()" style="
+        flex: 1;
+        padding: 10px;
+        background: #776e65;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+    ">↶ 悔步</button>
+
+    <button id="history-btn" onclick="showHistory()" style="
+        flex: 1;
+        padding: 10px;
+        background: #776e65;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+    ">📜 記錄</button>
+
+    <button id="analyze-btn" onclick="analyzeMove()" style="
+        flex: 1;
+        padding: 10px;
+        background: #776e65;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+    ">🧠 分析</button>
+</div>
+
+<div id="game-board"></div>
+
+<div class="controls">
+    <button class="control-btn" id="up">▲</button>
+    <button class="control-btn" id="left">◄</button>
+    <button class="control-btn" id="down">▼</button>
+    <button class="control-btn" id="right">►</button>
+</div>
+
+<p style="text-align: center; color: #776e65;">
+    使用 <b>方向鍵</b> 或 <b>按鈕</b> 來移動方塊！<br>
+    <small>目標：達到 2¹⁰⁰ </small>
+</p>
+
+<script>
+    const boardSize = 4;
+    let board = [];
+    let score = 0;
+    let minSpawn = 2;
+
+    // 歷史記錄系統
+    let moveHistory = []; // 存儲 {board, score, minSpawn, direction}
+    let moveSequence = []; // 存儲移動序列 ['上', '左', '右', ...]
+    const maxHistoryLength = 10000; // 最多保存50步
+
+
+    // 無盡模式相關變數
+    let endlessModeActive = false;
+    let endlessModeType = null;
+    let endlessModeStartScore = 0;
+    let endlessModeTimer = null;
+    let endlessModeTimeRemaining = 0;
+
+    let gameCompleted = false;
+
+    let isShowingCompletedWarning = false; // 防止重复弹窗
+
+    const highScoreManager = {
+        getScore(type) {
+            const key = `2048_endless_${type}`;
+            const stored = localStorage.getItem(key);
+            if (!stored) return 0;
+
+            try {
+                const data = JSON.parse(stored);
+                return parseFloat(data.value) || 0;
+            } catch {
+                return parseFloat(stored) || 0;
+            }
+        },
+
+        updateScore(type, newScore) {
+            const currentHigh = this.getScore(type);
+            if (newScore > currentHigh) {
+                const key = `2048_endless_${type}`;
+                localStorage.setItem(key, JSON.stringify({
+                    value: newScore.toString(),
+                    display: formatNumber(newScore),
+                    timestamp: Date.now()
+                }));
+                return true;
+            }
+            return false;
+        }
+    };
+
+    let normalHighScore = 0;
+
+    // 暴露到全局
+    window.endlessModeActive = false;
+    window.endlessModeType = null;
+
+    // 通用 Modal 顯示函數
+    function showModal(title, content) {
+        // 移除舊的 modal
+        const oldModal = document.getElementById('game-modal');
+        if (oldModal) oldModal.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'game-modal';
+        modal.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        " onclick="this.remove()">
+            <div style="
+                background: white;
+                padding: 25px;
+                border-radius: 10px;
+                max-width: 500px;
+                width: 90%;
+                max-height: 80vh;
+                overflow-y: auto;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            " onclick="event.stopPropagation()">
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                    padding-bottom: 15px;
+                    border-bottom: 2px solid #bbada0;
+                ">
+                    <h2 style="margin: 0; color: #776e65;">${title}</h2>
+                    <button onclick="document.getElementById('game-modal').remove()" style="
+                        background: #8f7a66;
+                        color: white;
+                        border: none;
+                        border-radius: 5px;
+                        padding: 8px 15px;
+                        cursor: pointer;
+                        font-weight: bold;
+                    ">✕</button>
+                </div>
+                <div>${content}</div>
+            </div>
+        </div>
+    `;
+        document.body.appendChild(modal);
+    }
+
+    function initGame() {
+        gameCompleted = false; // 🔥 重置遊戲完成狀態
+
+        board = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
+        score = 0;
+        minSpawn = 2;
+        moveHistory = [];
+        moveSequence = [];
+
+        const storedHigh = localStorage.getItem('2048_normal_high_score');
+        if (storedHigh) {
+            try {
+                const data = JSON.parse(storedHigh);
+                normalHighScore = parseFloat(data.value) || 0;
+            } catch {
+                normalHighScore = parseFloat(storedHigh) || 0;
+            }
+        } else {
+            normalHighScore = 0;
+        }
+
+        document.getElementById('high-score').textContent = formatNumber(normalHighScore);
+
+        updateScore();
+        updateInfo();
+        addTile();
+        addTile();
+        renderBoard();
+
+        if (aiMode) stopAI();
+        aiStats = { moves: 0, strategy: '準備中...' };
+    }
+
+    // AI 模式相關變量
+    let aiMode = false;
+    let aiInterval = null;
+    let aiSpeed = 50; // AI 移動速度(毫秒)
+    let aiStats = {
+        moves: 0,
+        strategy: '準備中...'
+    };
+
+    // ========== 新版 AI 系統 ==========
+
+    // 深度評估函數 - 多維度打分
+    function evaluateBoard() {
+        let score = 0;
+        const maxTile = getMaxTile();
+
+        // 統計數據
+        let emptyCount = 0;
+        let tileCount = {};
+        let allValues = [];
+
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                let val = board[r][c];
+                if (val === 0) {
+                    emptyCount++;
+                } else {
+                    tileCount[val] = (tileCount[val] || 0) + 1;
+                    allValues.push(val);
+                }
+            }
+        }
+
+        // ===== 評分系統 =====
+
+        // 1. 空格數 - 超高權重（生存空間）
+        score += Math.pow(emptyCount, 3) * 1000;
+
+        // 2. 小方塊懲罰系統（階梯式）
+        let minSpawnCount = tileCount[minSpawn] || 0;
+        let minSpawn2Count = tileCount[minSpawn * 2] || 0;
+        let minSpawn4Count = tileCount[minSpawn * 4] || 0;
+
+        score -= minSpawnCount * 2000;      // 最小方塊重懲
+        score -= minSpawn2Count * 1000;     // 次小方塊懲罰
+        score -= minSpawn4Count * 300;      // 小方塊輕懲
+
+        // 3. 數值比例健康度（最關鍵）
+        let ratio = maxTile / minSpawn;
+        if (ratio <= 4) score += 8000;      // 極佳
+        else if (ratio <= 8) score += 5000;  // 優秀
+        else if (ratio <= 16) score += 2000; // 良好
+        else if (ratio <= 32) score -= 1000; // 警戒
+        else score -= 5000;                  // 危險
+
+        // 4. 位置權重（蛇形強化）
+        const positionWeights = [
+            [65536, 32768, 16384, 8192],
+            [512,   1024,  2048,  4096],
+            [256,   128,   64,    32],
+            [2,     4,     8,     16]
+        ];
+
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                if (board[r][c] > 0) {
+                    score += board[r][c] * positionWeights[r][c] * 0.1;
+                }
+            }
+        }
+
+        // 5. 最大值位置（強制左上）
+        if (board[0][0] === maxTile) score += 10000;
+        else if (board[0][3] === maxTile) score += 3000;
+        else if (board[3][0] === maxTile) score += 3000;
+        else score -= 2000;
+
+        // 6. 單調性（每行每列遞減）
+        let monotonicity = 0;
+
+        // 檢查行
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize - 1; c++) {
+                if (board[r][c] >= board[r][c+1]) monotonicity += 50;
+                else monotonicity -= 30;
+            }
+        }
+
+        // 檢查列
+        for (let c = 0; c < boardSize; c++) {
+            for (let r = 0; r < boardSize - 1; r++) {
+                if (board[r][c] >= board[r+1][c]) monotonicity += 50;
+                else monotonicity -= 30;
+            }
+        }
+
+        score += monotonicity;
+
+        // 7. 合併潛力（重點：小方塊合併）
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                let val = board[r][c];
+                if (val > 0) {
+                    let mergeBonus = 0;
+
+                    // 檢查右邊
+                    if (c < boardSize - 1 && board[r][c+1] === val) {
+                        mergeBonus = val <= minSpawn * 4 ? val * 30 : val * 5;
+                        score += mergeBonus;
+                    }
+
+                    // 檢查下面
+                    if (r < boardSize - 1 && board[r+1][c] === val) {
+                        mergeBonus = val <= minSpawn * 4 ? val * 30 : val * 5;
+                        score += mergeBonus;
+                    }
+                }
+            }
+        }
+
+        // 8. 數值平滑度（避免跳躍）
+        if (allValues.length > 0) {
+            allValues.sort((a, b) => b - a);
+            let smoothness = 0;
+            for (let i = 0; i < allValues.length - 1; i++) {
+                let ratio = allValues[i] / allValues[i + 1];
+                if (ratio === 2) smoothness += 100;  // 完美倍數
+                else if (ratio <= 4) smoothness += 50;
+                else smoothness -= 50;
+            }
+            score += smoothness;
+        }
+
+        return score;
+    }
+
+    // 模擬移動（不添加新方塊）
+    function simulateMove(direction) {
+        let moved = false;
+        if (direction === 'left' || direction === 'right') {
+            for (let r = 0; r < boardSize; r++) {
+                let row = board[r].slice();
+                if (direction === 'right') row.reverse();
+                let newRow = slide(row);
+                if (direction === 'right') newRow.reverse();
+                if (JSON.stringify(board[r]) !== JSON.stringify(newRow)) moved = true;
+                board[r] = newRow;
+            }
+        } else {
+            for (let c = 0; c < boardSize; c++) {
+                let column = [board[0][c], board[1][c], board[2][c], board[3][c]];
+                if (direction === 'down') column.reverse();
+                let newColumn = slide(column);
+                if (direction === 'down') newColumn.reverse();
+                for (let r = 0; r < boardSize; r++) {
+                    if (board[r][c] !== newColumn[r]) moved = true;
+                    board[r][c] = newColumn[r];
+                }
+            }
+        }
+        return moved;
+    }
+
+    // 多步搜索 AI
+    function getBestMove() {
+        const directions = ['left', 'up', 'right', 'down'];
+        let bestScore = -Infinity;
+        let bestMove = null;
+
+        for (let dir of directions) {
+            let totalScore = 0;
+            let simulations = 3; // 每個方向模擬3次
+
+            for (let sim = 0; sim < simulations; sim++) {
+                let savedBoard = JSON.parse(JSON.stringify(board));
+                let savedScore = score;
+
+                // 第一步移動
+                let moved = simulateMove(dir);
+
+                if (!moved) {
+                    totalScore = -Infinity;
+                    board = savedBoard;
+                    score = savedScore;
+                    break;
+                }
+
+                // 模擬添加隨機方塊
+                let emptyCells = [];
+                for (let r = 0; r < boardSize; r++) {
+                    for (let c = 0; c < boardSize; c++) {
+                        if (board[r][c] === 0) emptyCells.push({r, c});
+                    }
+                }
+
+                if (emptyCells.length > 0) {
+                    let randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    board[randomCell.r][randomCell.c] = Math.random() < 0.9 ? minSpawn : minSpawn * 2;
+                }
+
+                // 評估當前局面
+                let currentScore = evaluateBoard();
+
+                // 再看下一步（深度2）
+                let futureScore = 0;
+                for (let nextDir of directions) {
+                    let tempBoard = JSON.parse(JSON.stringify(board));
+                    let tempScore = score;
+
+                    if (simulateMove(nextDir)) {
+                        futureScore = Math.max(futureScore, evaluateBoard());
+                    }
+
+                    board = tempBoard;
+                    score = tempScore;
+                }
+
+                totalScore += currentScore + futureScore * 0.5;
+
+                // 恢復棋盤
+                board = savedBoard;
+                score = savedScore;
+            }
+
+            let avgScore = totalScore / simulations;
+
+            if (avgScore > bestScore) {
+                bestScore = avgScore;
+                bestMove = dir;
+            }
+        }
+
+        return bestMove;
+    }
+
+    // AI 執行一步
+    function aiMove() {
+        if (!aiMode) return;
+
+        const bestMove = getBestMove();
+        if (bestMove) {
+            // 更新策略顯示
+            const maxTile = getMaxTile();
+            let minSpawnCount = 0;
+            let minSpawn2Count = 0;
+
+            for (let r = 0; r < boardSize; r++) {
+                for (let c = 0; c < boardSize; c++) {
+                    if (board[r][c] === minSpawn) minSpawnCount++;
+                    if (board[r][c] === minSpawn * 2) minSpawn2Count++;
+                }
+            }
+
+            let smallTiles = minSpawnCount + minSpawn2Count;
+            let ratio = maxTile / minSpawn;
+
+            if (smallTiles >= 5) {
+                aiStats.strategy = `🚨 危急！清理 ${smallTiles} 個小方塊`;
+            } else if (ratio > 32) {
+                aiStats.strategy = `⚠️ 比例失衡 ${ratio.toFixed(0)}:1`;
+            } else if (smallTiles >= 3) {
+                aiStats.strategy = `🧹 清理模式 (${smallTiles}個小方塊)`;
+            } else if (ratio <= 8) {
+                aiStats.strategy = `✨ 完美狀態 ${ratio.toFixed(0)}:1`;
+            } else {
+                aiStats.strategy = `📊 穩定發展中`;
+            }
+
+            aiStats.moves++;
+            updateAIStatus();
+            move(bestMove);
+        } else {
+            stopAI();
+            alert(`AI 已盡力！\n最終分數: ${formatNumber(score)}\n最大方塊: ${formatNumber(getMaxTile())}\n移動次數: ${aiStats.moves}`);
+        }
+    }
+
+    // 修改 updateAIStatus 函數，讓它也更新小工具
+    function updateAIStatus() {
+        const statusEl = document.getElementById('ai-status');
+        if (statusEl) {
+            statusEl.innerHTML = `
+            AI模式: 運行中 | 移動次數: ${aiStats.moves}<br>
+            策略: ${aiStats.strategy}
+        `;
+        }
+
+        // 🔥 同時更新無盡模式的小工具
+        const moveCountEl = document.getElementById('ai-move-count');
+        const strategyEl = document.getElementById('ai-strategy-text');
+        if (moveCountEl && endlessModeType === 'ai') {
+            moveCountEl.textContent = aiStats.moves;
+        }
+        if (strategyEl && endlessModeType === 'ai') {
+            strategyEl.textContent = aiStats.strategy;
+        }
+    }
+
+    // 開始 AI
+    function startAI() {
+        if (aiMode) return;
+        aiMode = true;
+        aiStats.moves = 0;
+        document.getElementById('ai-toggle').textContent = '⏸ 停止AI';
+        document.getElementById('ai-toggle').style.background = '#dc143c';
+        aiInterval = setInterval(aiMove, aiSpeed);
+    }
+
+    // 停止 AI
+    function stopAI() {
+        aiMode = false;
+        if (aiInterval) {
+            clearInterval(aiInterval);
+            aiInterval = null;
+        }
+
+        const aiToggle = document.getElementById('ai-toggle');
+        if (aiToggle) {
+            aiToggle.textContent = '🤖 啟動AI';
+            aiToggle.style.background = '#28a745';
+        }
+
+        const statusEl = document.getElementById('ai-status');
+        if (statusEl) {
+            statusEl.innerHTML = `AI模式: 已停止 | 總移動: ${aiStats.moves}`;
+        }
+    }
+
+
+
+    function getMaxTile() {
+        let max = 0;
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                if (board[r][c] > max) max = board[r][c];
+            }
+        }
+        return max;
+    }
+
+    function hasTileValue(value) {
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                if (board[r][c] === value) return true;
+            }
+        }
+        return false;
+    }
+
+    function updateMinSpawn() {
+        const maxTile = getMaxTile();
+        if (maxTile === 0) return;
+
+        if (maxTile >= minSpawn * 8) {
+            if (!hasTileValue(minSpawn)) {
+                minSpawn *= 2;
+                updateInfo();
+            }
+        }
+    }
+
+    function addTile() {
+        let emptyCells = [];
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                if (board[r][c] === 0) emptyCells.push({r, c});
+            }
+        }
+        if (emptyCells.length > 0) {
+            let {r, c} = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            board[r][c] = Math.random() < 0.9 ? minSpawn : minSpawn * 2;
+        }
+    }
+
+    function formatNumber(num) {
+        // 使用中文單位顯示大數字（修正：1溝 = 10000穰）
+        if (num >= 1e32) {
+            // 只有達到 10000 穰才顯示為溝
+            const gou = num / 1e32;
+            if (gou >= 1) {
+                return Math.floor(gou).toLocaleString() + '溝';
+            } else {
+                // 未滿 1 溝，顯示為穰
+                return Math.floor(num / 1e28).toLocaleString() + '穰';
+            }
+        } else if (num >= 1e28) {
+            return Math.floor(num / 1e28).toLocaleString() + '穰';
+        } else if (num >= 1e24) {
+            return Math.floor(num / 1e24).toLocaleString() + '秭';
+        } else if (num >= 1e20) {
+            return Math.floor(num / 1e20).toLocaleString() + '垓';
+        } else if (num >= 1e16) {
+            return Math.floor(num / 1e16).toLocaleString() + '京';
+        } else if (num >= 1e12) {
+            return Math.floor(num / 1e12).toLocaleString() + '兆';
+        } else if (num >= 1e8) {
+            return Math.floor(num / 1e8).toLocaleString() + '億';
+        } else if (num >= 1e4) {
+            return Math.floor(num / 1e4).toLocaleString() + '萬';
+        }
+
+        return num.toLocaleString();
+    }
+
+    function renderBoard() {
+        const container = document.getElementById('game-board');
+        container.innerHTML = '';
+
+        board.forEach(row => {
+            row.forEach(val => {
+                const cell = document.createElement('div');
+                let className = 'cell';
+
+                if (val > 0) {
+                    let power = Math.round(Math.log2(val));
+
+                    if (power >= 1 && power <= 100) {
+                        className += ` n-p${power}`;
+                    } else if (power > 100) {
+                        className += ' n-super';
+                    }
+                }
+
+                cell.className = className;
+                const text = val > 0 ? formatNumber(val) : '';
+                cell.textContent = text;
+
+                // 動態調整字體大小以填滿方塊
+                if (text) {
+                    // 根據文字長度計算字體大小
+                    let textLength = text.length;
+                    let fontSize;
+
+                    if (textLength <= 1) {
+                        fontSize = 35;
+                    } else if (textLength === 2) {
+                        fontSize = 32;
+                    } else if (textLength === 3) {
+                        fontSize = 28;
+                    } else if (textLength === 4) {
+                        fontSize = 24;
+                    } else if (textLength === 5) {
+                        fontSize = 20;
+                    } else if (textLength === 6) {
+                        fontSize = 16;
+                    } else if (textLength === 7) {
+                        fontSize = 14;
+                    } else if (textLength === 8) {
+                        fontSize = 12;
+                    } else {
+                        fontSize = 10;
+                    }
+
+                    cell.style.fontSize = fontSize + 'px';
+                }
+
+                container.appendChild(cell);
+            });
+        });
+    }
+
+    function updateScore() {
+        document.getElementById('score').textContent = formatNumber(score);
+
+        if (score > normalHighScore) {
+            normalHighScore = score;
+
+            localStorage.setItem('2048_normal_high_score', JSON.stringify({
+                value: score.toString(),
+                display: formatNumber(score),
+                timestamp: Date.now()
+            }));
+
+            document.getElementById('high-score').textContent = formatNumber(normalHighScore);
+        }
+    }
+
+    function updateInfo() {
+        document.getElementById('min-spawn').textContent = formatNumber(minSpawn);
+        document.getElementById('max-tile').textContent = formatNumber(getMaxTile());
+    }
+
+    function slide(row) {
+        let arr = row.filter(val => val);
+        for (let i = 0; i < arr.length - 1; i++) {
+            if (arr[i] === arr[i+1]) {
+                arr[i] *= 2;
+                score += arr[i];
+                arr[i+1] = 0;
+            }
+        }
+        arr = arr.filter(val => val);
+        while (arr.length < boardSize) arr.push(0);
+        return arr;
+    }
+
+    function isGameOver() {
+        // 檢查是否有空格
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                if (board[r][c] === 0) return false;
+            }
+        }
+
+        // 檢查是否有相鄰相同的方塊可以合併
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                const current = board[r][c];
+                // 檢查右邊
+                if (c < boardSize - 1 && board[r][c + 1] === current) return false;
+                // 檢查下面
+                if (r < boardSize - 1 && board[r + 1][c] === current) return false;
+            }
+        }
+
+        // 如果在無盡模式中且遊戲結束，觸發無盡模式結束
+        if (endlessModeActive) {
+            setTimeout(() => {
+                endEndlessMode(true);
+            }, 100);
+        }
+
+        return true;
+    }
+
+    function undoMove() {
+        if (moveHistory.length === 0) {
+            alert('❌ 沒有可以悔步的記錄了！');
+            return;
+        }
+
+        const lastState = moveHistory.pop();
+
+        board = JSON.parse(JSON.stringify(lastState.board));
+        score = lastState.score;
+        minSpawn = lastState.minSpawn;
+
+        // 移除最後一次移動記錄
+        if (moveSequence.length > 0) {
+            moveSequence.pop();
+        }
+
+        updateScore();
+        updateInfo();
+        renderBoard();
+
+
+    }
+
+
+
+    function showHistory() {
+        if (moveSequence.length === 0) {
+            showModal('📜 移動記錄', '<p style="text-align: center; color: #776e65;">還沒有移動記錄</p>');
+            return;
+        }
+
+        let content = '<div style="max-height: 400px; overflow-y: auto;">';
+        content += `<p style="color: #776e65; margin-bottom: 15px;">總共 ${moveSequence.length} 步移動</p>`;
+        content += '<div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;">';
+
+        for (let i = moveSequence.length - 1; i >= 0; i--) {
+            const move = moveSequence[i];
+            const isRecent = i >= moveSequence.length - 5;
+            content += `
+            <div style="
+                padding: 10px;
+                background: ${isRecent ? '#f2b179' : '#eee4da'};
+                border-radius: 5px;
+                text-align: center;
+                color: ${isRecent ? '#f9f6f2' : '#776e65'};
+                font-weight: bold;
+            ">
+                <div style="font-size: 11px;">#${i + 1}</div>
+                <div style="font-size: 20px; margin-top: 3px;">${move}</div>
+            </div>
+        `;
+        }
+
+        content += '</div></div>';
+        showModal('📜 移動記錄', content);
+    }
+
+    function analyzeMove() {
+        const directions = ['left', 'up', 'right', 'down'];
+        const directionNames = {
+            'left': '← 左',
+            'up': '↑ 上',
+            'right': '→ 右',
+            'down': '↓ 下'
+        };
+        const directionIcons = {
+            'left': '◄',
+            'up': '▲',
+            'right': '►',
+            'down': '▼'
+        };
+
+        let bestScore = -Infinity;
+        let bestMove = null;
+        let allScores = {};
+
+        // 評估每個方向
+        for (let dir of directions) {
+            let savedBoard = JSON.parse(JSON.stringify(board));
+            let savedScore = score;
+
+            let moved = simulateMove(dir);
+
+            if (!moved) {
+                allScores[dir] = -Infinity;
+                board = savedBoard;
+                score = savedScore;
+                continue;
+            }
+
+            let evalScore = evaluateBoard();
+            allScores[dir] = evalScore;
+
+            if (evalScore > bestScore) {
+                bestScore = evalScore;
+                bestMove = dir;
+            }
+
+            board = savedBoard;
+            score = savedScore;
+        }
+
+        // 按分數排序
+        let sortedMoves = Object.entries(allScores)
+            .filter(([dir, score]) => score !== -Infinity)
+            .sort((a, b) => b[1] - a[1]);
+
+        if (sortedMoves.length === 0) {
+            showModal('🧠 AI 分析', '<p style="text-align: center; color: #dc143c; font-size: 18px;">❌ 無可用招法！遊戲結束</p>');
+            return;
+        }
+
+        let content = '<div>';
+
+        // 顯示每個方向的評分
+        sortedMoves.forEach(([dir, evalScore], index) => {
+            let bgColor, textColor, rating;
+            if (index === 0) {
+                bgColor = '#28a745';
+                textColor = '#fff';
+                rating = '⭐ 最佳';
+            } else if (index === 1) {
+                bgColor = '#f2b179';
+                textColor = '#fff';
+                rating = '✓ 次佳';
+            } else {
+                bgColor = '#eee4da';
+                textColor = '#776e65';
+                rating = '△ 可選';
+            }
+
+            content += `
+            <div style="
+                padding: 15px;
+                margin-bottom: 10px;
+                background: ${bgColor};
+                color: ${textColor};
+                border-radius: 8px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            ">
+                <div style="font-size: 32px;">${directionIcons[dir]}</div>
+                <div style="flex: 1; margin: 0 15px;">
+                    <div style="font-weight: bold; font-size: 16px;">${directionNames[dir]}</div>
+                    <div style="font-size: 12px; opacity: 0.9;">${rating}</div>
+                </div>
+                <div style="font-weight: bold; font-size: 18px;">${Math.round(evalScore)}</div>
+            </div>
+        `;
+        });
+
+        // 分析原因
+        const maxTile = getMaxTile();
+        let minSpawnCount = 0;
+        for (let r = 0; r < boardSize; r++) {
+            for (let c = 0; c < boardSize; c++) {
+                if (board[r][c] === minSpawn) minSpawnCount++;
+            }
+        }
+
+        content += '<div style="margin-top: 15px; padding: 12px; background: #faf8ef; border-radius: 5px; color: #776e65;">';
+        content += '<div style="font-weight: bold; margin-bottom: 8px;">💡 策略建議</div>';
+
+        if (minSpawnCount >= 4) {
+            content += '<div>⚠️ 小方塊過多，優先清理</div>';
+        } else if (maxTile / minSpawn > 32) {
+            content += '<div>⚠️ 數值差距大，注意平衡</div>';
+        } else {
+            content += '<div>✨ 局勢良好，穩定發展</div>';
+        }
+
+        content += '</div></div>';
+
+        showModal('🧠 AI 分析結果', content);
+    }
+
+    function move(direction) {
+
+        if (gameCompleted) {
+            showGameCompletedWarning();
+            return;
+        }
+
+        // 🔥 修復：只在移動前保存一次狀態
+        const prevBoard = JSON.stringify(board);
+        const prevScore = score;
+        const prevMinSpawn = minSpawn;
+
+        // 記錄移動方向
+        const directionMap = {
+            'up': '↑ 上',
+            'down': '↓ 下',
+            'left': '← 左',
+            'right': '→ 右'
+        };
+
+        // 執行移動
+        if (direction === 'left' || direction === 'right') {
+            for (let r = 0; r < boardSize; r++) {
+                let row = board[r];
+                if (direction === 'right') row.reverse();
+                row = slide(row);
+                if (direction === 'right') row.reverse();
+                board[r] = row;
+            }
+        } else {
+            for (let c = 0; c < boardSize; c++) {
+                let column = [board[0][c], board[1][c], board[2][c], board[3][c]];
+                if (direction === 'down') column.reverse();
+                column = slide(column);
+                if (direction === 'down') column.reverse();
+                for (let r = 0; r < boardSize; r++) board[r][c] = column[r];
+            }
+        }
+
+        // 檢查是否有實際移動
+        if (prevBoard !== JSON.stringify(board)) {
+            // 🔥 只有移動成功才保存狀態
+            moveHistory.push({
+                board: JSON.parse(prevBoard),
+                score: prevScore,
+                minSpawn: prevMinSpawn
+            });
+
+            // 限制歷史長度
+            if (moveHistory.length > maxHistoryLength) {
+                moveHistory.shift();
+                if (moveSequence.length > maxHistoryLength - 1) {
+                    moveSequence.shift();
+                }
+            }
+
+            moveSequence.push(directionMap[direction]);
+            updateMinSpawn();
+            addTile();
+            updateScore();
+            updateInfo();
+            renderBoard();
+
+            // 檢查是否達到 2^100 (勝利)
+            const maxTile = getMaxTile();
+            if (maxTile >= 1267650600228229401496703205376 && !gameCompleted) {
+                gameCompleted = true;
+
+                // 如果 AI 正在運行，立即停止
+                if (aiMode) {
+                    stopAI();
+                }
+
+                // 如果在無盡模式中，立即結算
+                if (endlessModeActive) {
+                    setTimeout(() => {
+                        showVictoryNotification();
+                        // 延遲 2 秒後結算無盡模式
+                        setTimeout(() => {
+                            endEndlessMode(false);
+                        }, 2000);
+                    }, 300);
+                } else {
+                    // 普通模式：顯示提示
+                    setTimeout(() => {
+                        showVictoryNotification();
+                    }, 300);
+                }
+            }
+
+            // 檢查遊戲是否結束（無路可走）
+            if (isGameOver()) {
+                setTimeout(() => {
+                    showGameOverModal();
+                }, 100);
+            }
+        }
+    }
+
+    // 胜利小提示（不阻挡棋盘）
+    function showVictoryNotification() {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px 40px;
+        border-radius: 15px;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+        z-index: 2000;
+        text-align: center;
+        animation: fadeInOut 4s forwards;
+    `;
+
+        notification.innerHTML = `
+        <div style="font-size: 64px; margin-bottom: 15px;">🎉</div>
+        <div style="font-size: 28px; font-weight: bold; margin-bottom: 10px;">恭喜通關！</div>
+        <div style="font-size: 18px; opacity: 0.9;">你達到了 2^100！</div>
+        <div style="font-size: 14px; margin-top: 15px; opacity: 0.8;">📸 現在可以截圖留念</div>
+        <div style="font-size: 12px; margin-top: 5px; opacity: 0.7;">（棋盤已鎖定）</div>
+    `;
+
+        const style = document.createElement('style');
+        style.textContent = `
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            90% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+    `;
+        document.head.appendChild(style);
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.remove();
+            style.remove();
+        }, 4000);
+    }
+
+    // 確認重新開始
+    function confirmRestart() {
+        if (score === 0 && getMaxTile() === 0) {
+            // 遊戲還沒開始，直接重新開始
+            initGame();
+            return;
+        }
+
+        const content = `
+        <div style="text-align: center;">
+            <div style="font-size: 64px; margin-bottom: 20px;">⚠️</div>
+            <h2 style="margin: 0 0 15px 0; color: #776e65;">確定要重新開始嗎？</h2>
+            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px; color: #8f7a66;">
+                當前進度將會清除
+            </p>
+            <div style="background: #faf8ef; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+                <div style="font-size: 14px; color: #8f7a66; margin-bottom: 8px;">當前分數</div>
+                <div style="font-size: 32px; color: #776e65; font-weight: bold;">${formatNumber(score)}</div>
+                <div style="font-size: 14px; color: #8f7a66; margin-top: 8px;">最大方塊：${formatNumber(getMaxTile())}</div>
+            </div>
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button onclick="initGame(); document.getElementById('game-modal').remove();" style="
+                    flex: 1;
+                    padding: 15px 30px;
+                    background: #f44336;
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    cursor: pointer;
+                ">確定重新開始</button>
+                <button onclick="document.getElementById('game-modal').remove()" style="
+                    flex: 1;
+                    padding: 15px 30px;
+                    background: #8f7a66;
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    cursor: pointer;
+                ">取消</button>
+            </div>
+        </div>
+    `;
+
+        showModal('🔄 重新開始遊戲', content);
+    }
+
+    // 遊戲說明
+    function showGameInfo() {
+        const content = `
+    <div style="line-height: 1.8; color: #776e65;">
+        <h3 style="color: #776e65; margin-top: 0;">🎮 遊戲目標</h3>
+        <p>合併相同數字的方塊，最終達到 <strong style="color: #f5576c;">2¹⁰⁰</strong>（約 1.27 溝）！</p>
+
+        <h3 style="color: #776e65;">🕹️ 操作方式</h3>
+        <ul style="padding-left: 20px;">
+            <li>使用 <strong>鍵盤方向鍵</strong> 或點擊 <strong>螢幕按鈕</strong></li>
+            <li>所有方塊會朝該方向移動</li>
+            <li>相同數字的方塊碰撞後會合併</li>
+            <li>每次移動後會隨機出現新方塊</li>
+        </ul>
+
+        <h3 style="color: #776e65;">🎯 核心機制</h3>
+        <ul style="padding-left: 20px;">
+            <li><strong>動態掉落系統：</strong>當最大方塊 ≥ 最小掉落值 × 8 時，最小掉落值會自動翻倍</li>
+            <li><strong>智能平衡：</strong>避免小方塊過多導致棋盤卡死</li>
+            <li><strong>分數累積：</strong>每次合併獲得合併後的數值分數</li>
+        </ul>
+
+        <h3 style="color: #776e65;">⚡ 特色功能</h3>
+        <ul style="padding-left: 20px;">
+            <li><strong>↶ 悔步：</strong>撤銷上一步操作（可連續悔棋）</li>
+            <li><strong>🧠 AI 分析：</strong>AI 評估每個方向的最佳選擇並給出建議</li>
+            <li><strong>📜 移動記錄：</strong>查看所有移動歷史</li>
+        </ul>
+
+        <h3 style="color: #776e65;">♾️ 無盡模式</h3>
+        <ul style="padding-left: 20px;">
+            <li><strong>⏱️ 限時模式：</strong>10 分鐘內盡可能獲得高分</li>
+            <li><strong>♾️ 無限模式：</strong>無時間限制，挑戰極限分數</li>
+            <li><strong>🤖 AI 無盡：</strong>觀看 AI 自動遊玩並學習策略</li>
+        </ul>
+
+        <h3 style="color: #776e65;">💡 進階技巧</h3>
+        <ul style="padding-left: 20px;">
+            <li>保持最大方塊在角落（建議左上角）</li>
+            <li>盡量讓方塊按大小排列（蛇形策略）</li>
+            <li>避免棋盤出現過多小方塊</li>
+            <li>保留足夠的空格以便合併</li>
+        </ul>
+
+        <hr style="border: none; border-top: 1px solid #bbada0; margin: 20px 0;">
+
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 8px; color: white; margin-top: 20px;">
+    <h4 style="margin: 0 0 10px 0;">👨‍💻 開發者的話</h4>
+    <p style="font-size: 14px; margin: 0; line-height: 1.6;">
+        我是一名高二生，旨在挑戰經典 2048 遊戲的極限。通過引入動態掉落系統和無盡模式，讓遊戲能夠持續進行到 2¹⁰⁰ 甚至更高。希望你能享受這趟數字合併的旅程！
+    </p>
+    <div style="text-align: center; margin-top: 15px;">
+        <img src="signature/signature.png" alt="創作者簽名" style="max-width: 200px; height: auto;">
+    </div>
+</div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="document.getElementById('game-modal').remove()" style="background-color: #8f7a66; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold;">
+                關閉
+            </button>
+        </div>
+    </div>
+`;
+
+        showModal('❓ 遊戲說明', content);
+    }
+
+    // 遊戲結束 Modal
+    function showGameOverModal() {
+        const maxTile = getMaxTile();
+        const content = `
+        <div style="text-align: center;">
+            <div style="font-size: 100px; margin-bottom: 20px;">💀</div>
+            <h1 style="
+                color: #dc143c;
+                font-size: 42px;
+                margin: 0 0 10px 0;
+                font-weight: 900;
+            ">遊戲結束</h1>
+            <p style="font-size: 16px; color: #8f7a66; margin-bottom: 30px;">無路可走了！</p>
+
+            <div style="
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                padding: 30px;
+                border-radius: 15px;
+                margin: 25px 0;
+                color: white;
+                box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
+            ">
+                <div style="font-size: 16px; opacity: 0.9; margin-bottom: 10px;">最終分數</div>
+                <div style="font-size: 56px; font-weight: bold; margin-bottom: 20px;">${formatNumber(score)}</div>
+                <div style="font-size: 18px; opacity: 0.9;">最大方塊：${formatNumber(maxTile)}</div>
+            </div>
+
+            ${score > normalHighScore ? '<div style="font-size: 24px; color: #FFD700; margin-bottom: 20px;">🏆 新紀錄！</div>' : ''}
+
+            <div style="display: flex; gap: 15px; justify-content: center;">
+                <button onclick="initGame(); document.getElementById('game-modal').remove();" style="
+                    flex: 1;
+                    padding: 15px 30px;
+                    background: #28a745;
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+                ">🔄 重新開始</button>
+                <button onclick="document.getElementById('game-modal').remove()" style="
+                    flex: 1;
+                    padding: 15px 30px;
+                    background: #8f7a66;
+                    color: white;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    cursor: pointer;
+                ">✓ 確定</button>
+            </div>
+        </div>
+    `;
+
+        showModal('遊戲結束', content);
+    }
+
+
+    // AI 控制警告
+    function showAIControlWarning() {
+        const content = `
+        <div style="text-align: center;">
+            <div style="font-size: 64px; margin-bottom: 20px;">🤖</div>
+            <h2 style="margin: 0 0 15px 0; color: #776e65;">AI 控制中</h2>
+            <p style="font-size: 18px; line-height: 1.8; margin-bottom: 25px; color: #8f7a66;">
+                目前處於 <strong style="color: #764ba2;">AI 無盡模式</strong><br>
+                由 AI 自動控制
+            </p>
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; margin-bottom: 25px; color: white;">
+                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">若需手動操作</div>
+                <div style="font-size: 16px; font-weight: bold;">請先結束無盡模式</div>
+            </div>
+            <button onclick="document.getElementById('game-modal').remove()" style="
+                padding: 15px 40px;
+                background: #8f7a66;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+            ">我知道了</button>
+        </div>
+    `;
+
+        showModal('🤖 AI 控制中', content);
+    }
+
+    // 顯示無盡模式選擇對話框
+    function showEndlessModeDialog() {
+        if (endlessModeActive) {
+            showModal('結束無盡模式', `
+            <p style="text-align: center; font-size: 18px; color: #776e65; margin-bottom: 25px;">
+                確定要結束當前無盡模式嗎？
+            </p>
+            <div style="display: flex; gap: 15px;">
+                <button onclick="endEndlessMode(); document.getElementById('game-modal').remove();" style="
+                    flex: 1;
+                    padding: 12px;
+                    background: #f44336;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                ">確定結束</button>
+                <button onclick="document.getElementById('game-modal').remove()" style="
+                    flex: 1;
+                    padding: 12px;
+                    background: #8f7a66;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                ">取消</button>
+            </div>
+        `);
+            return;
+        }
+
+        const content = `
+        <p style="text-align: center; margin-bottom: 30px; color: #776e65; font-size: 16px;">
+            ⚠️ 啟動後將禁用悔步、分析等功能
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <button onclick="startEndlessMode('timed'); document.getElementById('game-modal').remove();" style="
+                width: 100%;
+                padding: 20px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                font-size: 18px;
+                font-weight: bold;
+                transition: transform 0.2s;
+            " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                ⏱️ 限時模式 (10 分鐘)<br>
+                <span style="font-size: 14px; opacity: 0.8;">👑 最高分: ${formatNumber(highScoreManager.getScore('timed'))}</span>
+            </button>
+
+            <button onclick="startEndlessMode('infinite'); document.getElementById('game-modal').remove();" style="
+                width: 100%;
+                padding: 20px;
+                background: #2196F3;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                font-size: 18px;
+                font-weight: bold;
+                transition: transform 0.2s;
+            " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                ♾️ 無限模式<br>
+                <span style="font-size: 14px; opacity: 0.8;">👑 最高分: ${formatNumber(highScoreManager.getScore('infinite'))}</span>
+            </button>
+
+            <button onclick="startEndlessMode('ai'); document.getElementById('game-modal').remove();" style="
+                width: 100%;
+                padding: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                font-size: 18px;
+                font-weight: bold;
+                transition: transform 0.2s;
+            " onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                🤖 AI 無盡模式<br>
+                <span style="font-size: 14px; opacity: 0.8;">👑 最高分: ${formatNumber(highScoreManager.getScore('ai'))}</span>
+            </button>
+        </div>
+    `;
+
+        showModal('♾️ 選擇無盡模式', content);
+    }
+
+    function startEndlessMode(type) {
+        // 🔥 启动无尽模式前先重置游戏
+        initGame();
+
+        // 延迟一下确保游戏已重置
+        setTimeout(() => {
+            endlessModeActive = true;
+            window.endlessModeActive = true;
+            endlessModeType = type;
+            window.endlessModeType = type;
+            endlessModeStartScore = 0; // 从 0 开始计分
+
+            // 設置事件攔截器
+            setupEndlessModeInterceptor();
+
+            const endlessBtn = document.getElementById('endless-mode-btn');
+            endlessBtn.textContent = '⏹️ 結束無盡';
+            endlessBtn.style.background = 'linear-gradient(135deg, #f44336 0%, #e91e63 100%)';
+
+            if (type === 'timed') {
+                endlessModeTimeRemaining = 600;
+                createTimerWidget();
+                startTimerCountdown();
+                showNotification('⏱️ 限時模式已啟動！你有 10 分鐘！', 'success');
+            } else if (type === 'ai') {
+                console.log('開始啟動 AI 無盡模式');
+
+                if (aiMode) {
+                    stopAI();
+                }
+
+                aiStats = { moves: 0, strategy: '啟動中...' };
+
+                setTimeout(() => {
+                    aiMode = true;
+                    aiStats.moves = 0;
+                    aiStats.strategy = '分析中...';
+
+                    aiInterval = setInterval(aiMove, aiSpeed);
+
+                    console.log('AI 已啟動，aiMode:', aiMode, 'interval:', aiInterval);
+
+                    createAIStatusWidget();
+                    showNotification('🤖 AI 無盡模式已啟動！', 'success');
+                }, 100);
+
+            } else {
+                showNotification('♾️ 無限模式已啟動！盡情挑戰！', 'success');
+            }
+        }, 100);
+    }
+
+    // 確保 createAIStatusWidget 函數存在
+    function createAIStatusWidget() {
+        // 移除舊的小工具
+        const oldWidget = document.getElementById('ai-status-widget');
+        if (oldWidget) oldWidget.remove();
+
+        const widget = document.createElement('div');
+        widget.id = 'ai-status-widget';
+        widget.style.cssText = `
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 15px 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    z-index: 999;
+    min-width: 200px;
+    cursor: move;
+    user-select: none;
+`;
+
+        widget.innerHTML = `
+    <div style="font-size: 16px; margin-bottom: 5px;">🤖 AI 運行中</div>
+    <div style="font-size: 12px; opacity: 0.8;">移動次數: <span id="ai-move-count">0</span></div>
+    <div style="font-size: 12px; opacity: 0.8; margin-top: 3px;">策略: <span id="ai-strategy-text">運算中...</span></div>
+`;
+
+        document.body.appendChild(widget);
+
+        // 讓 widget 可以拖動
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+
+        widget.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            initialX = e.clientX - widget.offsetLeft;
+            initialY = e.clientY - widget.offsetTop;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                widget.style.left = currentX + 'px';
+                widget.style.top = currentY + 'px';
+                widget.style.right = 'auto'; // 取消 right 定位
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        // 觸控支援
+        widget.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            const touch = e.touches[0];
+            initialX = touch.clientX - widget.offsetLeft;
+            initialY = touch.clientY - widget.offsetTop;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                currentX = touch.clientX - initialX;
+                currentY = touch.clientY - initialY;
+
+                widget.style.left = currentX + 'px';
+                widget.style.top = currentY + 'px';
+                widget.style.right = 'auto';
+            }
+        });
+
+        document.addEventListener('touchend', () => {
+            isDragging = false;
+        });
+
+        // 開始更新狀態
+        updateAIWidgetStatus();
+    }
+
+    // 更新 AI 小工具狀態
+    function updateAIWidgetStatus() {
+        const moveCountEl = document.getElementById('ai-move-count');
+        const strategyEl = document.getElementById('ai-strategy-text');
+
+        if (moveCountEl && endlessModeType === 'ai') {
+            moveCountEl.textContent = aiStats.moves;
+            if (strategyEl) {
+                strategyEl.textContent = aiStats.strategy || '運算中...';
+            }
+
+            // 繼續更新
+            setTimeout(updateAIWidgetStatus, 200);
+        }
+    }
+
+    // 修改 endEndlessMode，確保停止 AI
+    function endEndlessMode(gameOver = false) {
+        const finalScore = score - endlessModeStartScore;
+        const type = endlessModeType;
+
+        console.log('結束無盡模式，type:', type, 'aiMode:', aiMode);
+
+        // 停止 AI（如果在運行）
+        if (type === 'ai') {
+            // 強制停止 AI
+            aiMode = false;
+            if (aiInterval) {
+                clearInterval(aiInterval);
+                aiInterval = null;
+            }
+
+            // 移除 AI 狀態小工具
+            const aiWidget = document.getElementById('ai-status-widget');
+            if (aiWidget) aiWidget.remove();
+
+            console.log('AI 已停止');
+        }
+
+        // 更新最高分
+        const isNewRecord = highScoreManager.updateScore(type, finalScore);
+
+        if (endlessModeTimer) {
+            clearInterval(endlessModeTimer);
+            endlessModeTimer = null;
+        }
+
+        const timerWidget = document.getElementById('endless-timer-widget');
+        if (timerWidget) timerWidget.remove();
+
+        // 移除事件攔截器
+        removeEndlessModeInterceptor();
+
+        const endlessBtn = document.getElementById('endless-mode-btn');
+        endlessBtn.textContent = '♾️ 無盡模式';
+        endlessBtn.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+
+        showEndlessModeResult(finalScore, type, gameOver, isNewRecord);
+
+        endlessModeActive = false;
+        window.endlessModeActive = false;
+        endlessModeType = null;
+        window.endlessModeType = null;
+    }
+
+    // 顯示結果
+    function showEndlessModeResult(endlessScore, type, gameOver, isNewRecord) {
+        const typeName = type === 'timed' ? '⏱️ 限時模式' : type === 'ai' ? '🤖 AI 模式' : '♾️ 無限模式';
+        const highScore = highScoreManager.getScore(type);
+
+        const content = `
+        <div style="text-align: center;">
+            <h1 style="margin: 0; font-size: 48px;">${gameOver ? '💀' : '🎉'}</h1>
+            <h2 style="margin: 10px 0 5px 0; color: #776e65;">${gameOver ? '遊戲結束' : '無盡模式結束'}</h2>
+            <p style="font-size: 16px; color: #8f7a66; margin-bottom: 20px;">${typeName}</p>
+
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 25px; border-radius: 10px; margin: 20px 0; color: white;">
+                <div style="font-size: 14px; opacity: 0.9;">本次得分</div>
+                <div style="font-size: 56px; font-weight: bold; margin: 10px 0;">${formatNumber(endlessScore)}</div>
+                ${isNewRecord ? '<div style="font-size: 20px; color: #FFD700; margin-top: 10px;">🏆 新紀錄！</div>' : ''}
+            </div>
+
+            <div style="color: #776e65; font-size: 14px; margin-bottom: 25px;">
+                歷史最高分：${formatNumber(highScore)}
+            </div>
+
+            <button onclick="document.getElementById('game-modal').remove()" style="
+                padding: 15px 40px;
+                background: #8f7a66;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+            ">確定</button>
+        </div>
+    `;
+
+        showModal(gameOver ? '遊戲結束' : '無盡模式完成', content);
+    }
+
+    // 計時器小工具
+    function createTimerWidget() {
+        const widget = document.createElement('div');
+        widget.id = 'endless-timer-widget';
+        widget.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        padding: 15px 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        color: white;
+        font-size: 20px;
+        font-weight: bold;
+        z-index: 999;
+    `;
+
+        widget.innerHTML = `
+        <div style="font-size: 12px; opacity: 0.8; margin-bottom: 3px;">剩餘時間</div>
+        <div id="timer-display">10:00</div>
+    `;
+
+        document.body.appendChild(widget);
+    }
+
+    // 開始倒計時
+    function startTimerCountdown() {
+        endlessModeTimer = setInterval(() => {
+            endlessModeTimeRemaining--;
+
+            const minutes = Math.floor(endlessModeTimeRemaining / 60);
+            const seconds = endlessModeTimeRemaining % 60;
+            const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            const timerDisplay = document.getElementById('timer-display');
+            if (timerDisplay) {
+                timerDisplay.textContent = display;
+
+                if (endlessModeTimeRemaining <= 10) {
+                    timerDisplay.style.color = endlessModeTimeRemaining % 2 === 0 ? '#ff0000' : '#ffffff';
+                }
+            }
+
+            if (endlessModeTimeRemaining <= 0) {
+                endEndlessMode(false);
+            }
+        }, 1000);
+    }
+
+    // 設置事件攔截器
+    function setupEndlessModeInterceptor() {
+        document.addEventListener('click', endlessModeClickInterceptor, true);
+    }
+
+    // 移除事件攔截器
+    function removeEndlessModeInterceptor() {
+        document.removeEventListener('click', endlessModeClickInterceptor, true);
+    }
+
+    // 點擊事件攔截器
+    function endlessModeClickInterceptor(e) {
+        if (!endlessModeActive) return;
+
+        const btn = e.target.closest('button');
+        if (!btn) return;
+
+        const text = btn.textContent;
+
+        // 攔截悔步和分析按鈕
+        const isBlockedButton = text.includes('↶ 悔步') ||
+            text.includes('🧠 分析') ||
+            text.includes('📜 紀錄');
+
+        if (isBlockedButton) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            showEndlessModeWarning();
+            return false;
+        }
+    }
+
+    function showEndlessModeWarning() {
+        if (document.getElementById('endless-warning-modal')) {
+            return;
+        }
+
+        const content = `
+        <div style="text-align: center;">
+            <div style="font-size: 64px; margin-bottom: 20px;">⚠️</div>
+            <h2 style="margin: 0 0 15px 0; color: #776e65;">無盡模式進行中</h2>
+            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 20px; color: #8f7a66;">
+                目前處於無盡模式，無法使用以下功能：
+            </p>
+            <div style="background: #faf8ef; padding: 20px; border-radius: 10px; margin-bottom: 25px; text-align: left;">
+                <div style="margin-bottom: 10px; color: #776e65;">❌ 悔步功能</div>
+                <div style="margin-bottom: 10px; color: #776e65;">❌ AI 分析</div>
+
+            </div>
+            <p style="font-size: 14px; color: #8f7a66; margin-bottom: 25px;">
+                請先結束無盡模式才能使用這些功能
+            </p>
+            <button onclick="document.getElementById('endless-warning-modal').remove()" style="
+                padding: 15px 40px;
+                background: #f44336;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: bold;
+                cursor: pointer;
+            ">我知道了</button>
+        </div>
+    `;
+
+        const modal = document.createElement('div');
+        modal.id = 'endless-warning-modal';
+        modal.innerHTML = `
+        <div style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        ">
+            <div style="
+                background: white;
+                padding: 25px;
+                border-radius: 10px;
+                max-width: 500px;
+                width: 90%;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            ">
+                ${content}
+            </div>
+        </div>
+    `;
+        document.body.appendChild(modal);
+    }
+
+    // 通知提示
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        const bgColor = type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3';
+
+        notification.style.cssText = `
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: ${bgColor};
+        color: white;
+        padding: 15px 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        z-index: 2000;
+        font-weight: bold;
+        white-space: pre-line;
+        text-align: center;
+    `;
+
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.transition = 'opacity 0.3s';
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    function showGameCompletedWarning() {
+        // 如果已有弹窗，不重复创建
+        if (document.getElementById('game-completed-modal')) {
+            return;
+        }
+
+        const modal = document.createElement('div');
+        modal.id = 'game-completed-modal';
+        modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+
+        modal.innerHTML = `
+        <div style="
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        ">
+            <div style="text-align: center;">
+                <div style="font-size: 64px; margin-bottom: 20px;">🏆</div>
+                <h2 style="margin: 0 0 15px 0; color: #776e65;">遊戲已完成</h2>
+                <p style="font-size: 18px; line-height: 1.8; margin-bottom: 25px; color: #8f7a66;">
+                    你已經達到 <strong style="color: #f5576c;">2^100</strong><br>
+                    並征服了這個遊戲！
+                </p>
+                <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 10px; margin-bottom: 25px; color: white;">
+                    <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">📸 棋盤已鎖定</div>
+                    <div style="font-size: 16px; font-weight: bold;">可以截圖留念，但無法繼續操作</div>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <button id="close-completed-btn" style="
+                        flex: 1;
+                        padding: 15px;
+                        background: #2196F3;
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        font-size: 18px;
+                        font-weight: bold;
+                        cursor: pointer;
+                    ">✕ 關閉</button>
+                    <button id="restart-completed-btn" style="
+                        flex: 1;
+                        padding: 15px;
+                        background: #28a745;
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        font-size: 18px;
+                        font-weight: bold;
+                        cursor: pointer;
+                    ">🔄 重新開始</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+        document.body.appendChild(modal);
+
+        // 关闭按钮
+        document.getElementById('close-completed-btn').onclick = () => {
+            modal.remove();
+        };
+
+        // 重新开始按钮
+        document.getElementById('restart-completed-btn').onclick = () => {
+            modal.remove();
+            initGame();
+        };
+
+        // 点击背景关闭
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        };
+    }
+
+    // 鍵盤控制
+    window.addEventListener('keydown', e => {
+        // 🔥 AI 無盡模式禁止手動控制
+        if (endlessModeActive && endlessModeType === 'ai') {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+                showAIControlWarning();
+            }
+            return;
+        }
+
+        // 🔥 遊戲已完成，禁止移動 - 但不在这里弹窗，交给 move() 处理
+        if (e.key === 'ArrowUp') { e.preventDefault(); move('up'); }
+        if (e.key === 'ArrowDown') { e.preventDefault(); move('down'); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); move('left'); }
+        if (e.key === 'ArrowRight') { e.preventDefault(); move('right'); }
+    });
+
+    // 按鈕控制
+    document.getElementById('up').addEventListener('click', () => {
+        if (endlessModeActive && endlessModeType === 'ai') {
+            showAIControlWarning();
+            return;
+        }
+        move('up'); // 直接调用 move，让 move 自己处理 gameCompleted
+    });
+
+    document.getElementById('down').addEventListener('click', () => {
+        if (endlessModeActive && endlessModeType === 'ai') {
+            showAIControlWarning();
+            return;
+        }
+        move('down');
+    });
+
+    document.getElementById('left').addEventListener('click', () => {
+        if (endlessModeActive && endlessModeType === 'ai') {
+            showAIControlWarning();
+            return;
+        }
+        move('left');
+    });
+
+    document.getElementById('right').addEventListener('click', () => {
+        if (endlessModeActive && endlessModeType === 'ai') {
+            showAIControlWarning();
+            return;
+        }
+        move('right');
+    });
+
+    // 觸控支援
+    document.getElementById('up').addEventListener('touchstart', (e) => {
+        if (endlessModeActive && endlessModeType === 'ai') {
+            e.preventDefault();
+            showAIControlWarning();
+            return;
+        }
+        e.preventDefault();
+        move('up');
+    });
+
+    document.getElementById('down').addEventListener('touchstart', (e) => {
+        if (endlessModeActive && endlessModeType === 'ai') {
+            e.preventDefault();
+            showAIControlWarning();
+            return;
+        }
+        e.preventDefault();
+        move('down');
+    });
+
+    document.getElementById('left').addEventListener('touchstart', (e) => {
+        if (endlessModeActive && endlessModeType === 'ai') {
+            e.preventDefault();
+            showAIControlWarning();
+            return;
+        }
+        e.preventDefault();
+        move('left');
+    });
+
+    document.getElementById('right').addEventListener('touchstart', (e) => {
+        if (endlessModeActive && endlessModeType === 'ai') {
+            e.preventDefault();
+            showAIControlWarning();
+            return;
+        }
+        e.preventDefault();
+        move('right');
+    });
+
+    initGame();
+</script>
+</body>
+<html>
