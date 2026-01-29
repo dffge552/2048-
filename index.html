@@ -753,7 +753,16 @@
             move(bestMove);
         } else {
             stopAI();
-            alert(`AI 已盡力！\n最終分數: ${formatNumber(score)}\n最大方塊: ${formatNumber(getMaxTile())}\n移動次數: ${aiStats.moves}`);
+            showModal('🤖 AI 遊戲結束', `
+    <div style="text-align: center; font-size: 16px; line-height: 1.8;">
+        <p style="font-size: 18px; font-weight: bold; color: #776e65; margin-bottom: 15px;">AI 已盡力！</p>
+        <div style="background: #faf8ef; padding: 15px; border-radius: 8px; margin: 10px 0;">
+            <p style="margin: 8px 0;"><strong>最終分數:</strong> ${formatNumber(score)}</p>
+            <p style="margin: 8px 0;"><strong>最大方塊:</strong> ${formatNumber(getMaxTile())}</p>
+            <p style="margin: 8px 0;"><strong>移動次數:</strong> ${aiStats.moves}</p>
+        </div>
+    </div>
+`);
         }
     }
 
@@ -1007,7 +1016,12 @@
 
     function undoMove() {
         if (moveHistory.length === 0) {
-            alert('❌ 沒有可以悔步的記錄了！');
+            showModal('⚠️ 無法悔步', `
+    <div style="text-align: center; padding: 20px; font-size: 16px; color: #776e65;">
+        <p style="font-size: 48px; margin: 0 0 15px 0;">❌</p>
+        <p style="margin: 0;">沒有可以悔步的記錄了！</p>
+    </div>
+`);
             return;
         }
 
