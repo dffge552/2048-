@@ -1,8 +1,7 @@
 <div align="center">
 🎮 2048 無盡模式
 2048 Endless Mode
-https://api.netlify.com/api/v1/badges/your-badge-id/deploy-status
-https://img.shields.io/badge/License-MIT-yellow.svg
+https://2048-endless.netlify.app/
 
 🔗 立即遊玩 / Play Now
 </div>
